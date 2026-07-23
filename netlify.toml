@@ -1,0 +1,21 @@
+# Netlify configuration for the Navigation Staging Site.
+#
+# Password protection (Requirement 6.4) is NOT configured here. Netlify's
+# site-level / basic password protection is enabled in the Netlify UI
+# (Site configuration -> Access & security -> Visitor access -> Password
+# protection). The shared credential is stored in Netlify, never committed
+# to this repository. See task 11 for enabling it on the deployed site.
+
+[build]
+  # Vite emits a fully static bundle; no server runtime is required.
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Single-page app fallback: serve index.html for client-side routes.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
