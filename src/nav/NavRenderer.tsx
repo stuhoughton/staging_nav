@@ -78,7 +78,11 @@ function NavNodeItem({ node, depth }: NavNodeItemProps): JSX.Element {
     const children = Array.isArray(node.navigationNode) ? node.navigationNode : [];
     return (
       <li className="nav-item nav-item--group">
-        <details className="nav-group">
+        {/* Top-level groups (depth 1) open on click like a nav bar; groups nested
+            inside the megamenu panel (depth > 1) render expanded so their links
+            are visible without an extra click. Uncontrolled at depth 1 so the
+            browser owns the open/close toggle. */}
+        <details className="nav-group" open={depth > 1 ? true : undefined}>
           <summary className="nav-group__title">{node.title}</summary>
           {children.length > 0 ? <NavNodeList nodes={children} depth={depth + 1} /> : null}
         </details>

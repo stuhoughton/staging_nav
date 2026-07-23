@@ -1,0 +1,287 @@
+/**
+ * Global styles for the Navigation Staging Site.
+ *
+ * The Nav Renderer emits semantic markup (`nav-renderer`, `nav-list[data-depth]`,
+ * `nav-group`, `nav-leaf__link`, …) and applies the active brand's theme tokens
+ * (`--nav-*`) as inline custom properties on `.nav-renderer`. This stylesheet is
+ * the consuming layer: it turns that structure + tokens into a storefront-style
+ * megamenu. It reads ONLY the `--nav-*` tokens for brand-specific values, so
+ * fidelity is tightened by editing theme tokens, never this file (retail
+ * white-label convention: no brand literals in shared styling).
+ *
+ * Fidelity here is a structural + themed approximation of the production megamenu,
+ * not a pixel-for-pixel copy — the deliberate tradeoff flagged in the design.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Arial, sans-serif;
+  color: #1a1a1a;
+  background: #f4f4f5;
+  line-height: 1.4;
+}
+
+/* ── App shell ─────────────────────────────────────────────────────────── */
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.app__header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.app__header p {
+  margin: 0 0 1.25rem;
+  color: #616161;
+}
+
+.app__controls {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.brand-selector,
+.csv-import {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.brand-selector__label,
+.csv-import__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #616161;
+}
+
+.brand-selector__select {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.95rem;
+  min-width: 200px;
+}
+
+.csv-import__input {
+  font-size: 0.9rem;
+}
+
+.app__errors {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: #fdecea;
+  border: 1px solid #f5c2c0;
+  border-left: 4px solid #c0392b;
+  border-radius: 4px;
+  color: #842029;
+}
+
+.app__errors-heading {
+  margin: 0 0 0.5rem;
+  font-weight: 700;
+}
+
+.app__errors ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.app__snapshot-error {
+  margin-top: 1rem;
+  padding: 2.5rem 1.5rem;
+  background: #fff;
+  border: 1px dashed #cfcfcf;
+  border-radius: 6px;
+  color: #616161;
+  text-align: center;
+}
+
+/* ── Nav Renderer: storefront megamenu ─────────────────────────────────── */
+
+.nav-renderer {
+  margin-top: 1rem;
+  background: var(--nav-color-surface, #fff);
+  border: 1px solid var(--nav-color-border, #e0e0e0);
+  border-radius: 6px;
+  font-family: var(--nav-font-body, system-ui, Arial, sans-serif);
+}
+
+/* Brand header row (logo). */
+.nav-renderer__header {
+  display: flex;
+  align-items: center;
+  padding: var(--nav-space-md, 1rem);
+  background: var(--nav-color-surface, #fff);
+  border-bottom: 1px solid var(--nav-color-border, #e0e0e0);
+  border-radius: 6px 6px 0 0;
+}
+
+.nav-renderer__logo {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
+.nav-list {
+  list-style: none;
+}
+
+/* Top-level bar. */
+.nav-renderer > .nav-list[data-depth="1"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  background: var(--nav-color-primary, #1a1a1a);
+  border-radius: 0 0 6px 6px;
+}
+
+.nav-renderer > .nav-list[data-depth="1"] > .nav-item {
+  position: relative;
+}
+
+/* Top-level labels: group summaries and leaf links share the bar-item look. */
+.nav-renderer > .nav-list[data-depth="1"] > .nav-item > .nav-group > .nav-group__title,
+.nav-renderer > .nav-list[data-depth="1"] > .nav-item > .nav-leaf__link {
+  display: block;
+  padding: 0.7rem 1rem;
+  color: var(--nav-color-on-primary, #fff);
+  font-family: var(--nav-font-heading, Georgia, serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nav-renderer > .nav-list[data-depth="1"] > .nav-item > .nav-group > .nav-group__title:hover,
+.nav-renderer > .nav-list[data-depth="1"] > .nav-item > .nav-leaf__link:hover,
+.nav-renderer
+  > .nav-list[data-depth="1"]
+  > .nav-item
+  > .nav-group[open]
+  > .nav-group__title {
+  background: var(--nav-color-accent, #b5121b);
+  color: #fff;
+}
+
+/* Chevron affordance on top-level groups. */
+.nav-renderer
+  > .nav-list[data-depth="1"]
+  > .nav-item--group
+  > .nav-group
+  > .nav-group__title::after {
+  content: "▾";
+  margin-left: 0.4rem;
+  font-size: 0.7em;
+  vertical-align: middle;
+}
+
+/* Hide the native <details> disclosure marker everywhere. */
+.nav-group__title {
+  list-style: none;
+}
+.nav-group__title::-webkit-details-marker {
+  display: none;
+}
+.nav-group__title::marker {
+  content: "";
+}
+
+/* ── Megamenu panel (depth 2 dropped under an open top-level group) ─────── */
+
+.nav-renderer
+  > .nav-list[data-depth="1"]
+  > .nav-item--group
+  > .nav-group[open]
+  > .nav-list[data-depth="2"] {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 2.5rem;
+  min-width: 260px;
+  max-width: 760px;
+  margin: 0;
+  padding: 1.5rem;
+  background: var(--nav-color-surface, #fff);
+  border: 1px solid var(--nav-color-border, #e0e0e0);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+/* Each depth-2 item is a column in the panel. */
+.nav-list[data-depth="2"] {
+  margin: 0;
+  padding: 0;
+}
+
+.nav-list[data-depth="2"] > .nav-item {
+  min-width: 160px;
+}
+
+/* Depth-2 group heading (a column title, not clickable-looking). */
+.nav-list[data-depth="2"] > .nav-item--group > .nav-group > .nav-group__title {
+  display: block;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
+  color: var(--nav-color-on-surface, #1a1a1a);
+  font-family: var(--nav-font-heading, Georgia, serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--nav-color-accent, #b5121b);
+  cursor: default;
+}
+
+.nav-list[data-depth="2"] > .nav-item--group > .nav-group > .nav-group__title::after {
+  content: none;
+}
+
+/* Depth-3 list: stacked links under a column heading. */
+.nav-list[data-depth="3"] {
+  margin: 0;
+  padding: 0;
+}
+
+/* Links inside the panel (depth-2 leaves and depth-3 leaves). */
+.nav-list[data-depth="2"] .nav-leaf__link,
+.nav-list[data-depth="3"] .nav-leaf__link {
+  display: block;
+  padding: 0.22rem 0;
+  color: var(--nav-color-on-surface, #1a1a1a);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.nav-list[data-depth="2"] .nav-leaf__link:hover,
+.nav-list[data-depth="3"] .nav-leaf__link:hover {
+  color: var(--nav-color-accent, #b5121b);
+  text-decoration: underline;
+}
+
+/* Malformed nodes: annotated, never blanking the tree (Property 7). */
+.nav-item--malformed {
+  padding: 0.3rem 1rem;
+  color: #a12622;
+  font-size: 0.8rem;
+  font-style: italic;
+}
