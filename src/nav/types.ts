@@ -85,4 +85,11 @@ export interface NavRendererProps {
   nodes: NavNode[];
   mode: "live" | "proposed";
   theme?: BrandTheme;
+  /**
+   * Brand production origin (e.g. "https://www.jdwilliams.co.uk"). When supplied,
+   * leaf links resolve to absolute production URLs opened in a new tab, so a click
+   * opens the real destination instead of a same-host path the staging SPA would
+   * swallow. Optional so isolated component tests can render without one.
+   */
+  linkOrigin?: string | undefined;
 }

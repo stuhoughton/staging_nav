@@ -117,10 +117,36 @@ function MalformedRow(): JSX.Element {
   );
 }
 
-/** A leaf link row carrying the node's `urlPath` as href. */
-function LeafLink({ node }: { node: NavNode }): JSX.Element {
+/**
+ * Resolves a node's `urlPath` to an href.
+ *
+ * When a brand `origin` is supplied the path is resolved to an absolute URL on the
+ * production storefront, so clicking opens the real destination rather than a
+ * same-host path that the staging SPA would swallow (rebooting at the root). With
+ * no origin (e.g. isolated component tests) the raw `urlPath` is used as-is.
+ */
+function leafHref(urlPath: string, origin: string | undefined): string {
+  if (!origin) {
+    return urlPath;
+  }
+  try {
+    return new URL(urlPath, origin).href;
+  } catch {
+    return urlPath;
+  }
+}
+
+/** A leaf link row carrying the node's destination. */
+function LeafLink({ node, origin }: { node: NavNode; origin: string | undefined }): JSX.Element {
+  const href = leafHref(node.urlPath, origin);
+  // Production destinations open in a new tab so the staging drawer is preserved.
+  const external = origin !== undefined;
   return (
-    <a className="nav-row nav-row--leaf nav-leaf__link" href={node.urlPath}>
+    <a
+      className="nav-row nav-row--leaf nav-leaf__link"
+      href={href}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+    >
       {node.title}
     </a>
   );
@@ -195,10 +221,13 @@ function Breadcrumb({
 function PanelBody({
   panel,
   onOpen,
+  origin,
 }: {
   panel: PanelModel;
   /** Opens a child/grandchild group's panel by id. */
   onOpen: (id: string) => void;
+  /** Brand origin for resolving leaf link destinations. */
+  origin: string | undefined;
 }): JSX.Element {
   // Root: a flat vertical menu — groups drill in, leaves are links.
   if (!panel.drilled) {
@@ -213,7 +242,7 @@ function PanelBody({
             ) : child.type === "G" ? (
               <DrillRow node={child} onOpen={() => onOpen(String(ci))} />
             ) : (
-              <LeafLink node={child} />
+              <LeafLink node={child} origin={origin} />
             )}
           </li>
         ))}
@@ -236,7 +265,7 @@ function PanelBody({
           return (
             <ul className="nav-menu" key={nodeKey(child, ci)}>
               <li className="nav-menu__item">
-                <LeafLink node={child} />
+                <LeafLink node={child} origin={origin} />
               </li>
             </ul>
           );
@@ -259,7 +288,7 @@ function PanelBody({
                   ) : grandchild.type === "G" ? (
                     <DrillRow node={grandchild} onOpen={() => onOpen(`${panel.id}/${ci}/${gi}`)} />
                   ) : (
-                    <LeafLink node={grandchild} />
+                    <LeafLink node={grandchild} origin={origin} />
                   )}
                 </li>
               ))}
@@ -286,7 +315,7 @@ function nodeKey(node: unknown, index: number): string {
  * Recursive navigation renderer as a drill-down drawer. See the module docstring
  * for the interaction and totality guarantees.
  */
-export function NavRenderer({ nodes, mode, theme }: NavRendererProps): JSX.Element {
+export function NavRenderer({ nodes, mode, theme, linkOrigin }: NavRendererProps): JSX.Element {
   const panels = useMemo(() => buildPanels(nodes), [nodes]);
   const byId = useMemo(() => new Map(panels.map((panel) => [panel.id, panel])), [panels]);
   const [activeId, setActiveId] = useState<string>(ROOT_PANEL);
@@ -336,7 +365,7 @@ export function NavRenderer({ nodes, mode, theme }: NavRendererProps): JSX.Eleme
                 <Breadcrumb panel={panel} byId={byId} onNavigate={open} />
               </div>
             ) : null}
-            <PanelBody panel={panel} onOpen={open} />
+            <PanelBody panel={panel} onOpen={open} origin={linkOrigin} />
           </section>
         ))}
       </div>

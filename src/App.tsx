@@ -139,7 +139,7 @@ export const App = ({
       ) : null}
 
       {canRender ? (
-        <NavRenderer nodes={nodesToRender} mode={mode} theme={theme} />
+        <NavRenderer nodes={nodesToRender} mode={mode} theme={theme} linkOrigin={brand?.origin} />
       ) : (
         <section className="app__snapshot-error" role="status">
           <p>

@@ -48,11 +48,11 @@ describe("App shell", () => {
     // The live nav is rendered in live mode.
     const nav = document.querySelector("nav.nav-renderer");
     expect(nav).toHaveAttribute("data-mode", "live");
-    // A representative leaf link from the fixture is present.
-    expect(screen.getByRole("link", { name: "Dresses" })).toHaveAttribute(
-      "href",
-      "/shop/c/womens/dresses",
-    );
+    // A representative leaf link from the fixture is present, resolved to the
+    // brand's production origin and opened as external navigation.
+    const dresses = screen.getByRole("link", { name: "Dresses" });
+    expect(dresses).toHaveAttribute("href", "https://www.jdwilliams.co.uk/shop/c/womens/dresses");
+    expect(dresses).toHaveAttribute("target", "_blank");
   });
 
   it("shows the live snapshot capture timestamp in the banner (Req 3.4)", () => {
