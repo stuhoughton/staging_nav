@@ -27,9 +27,7 @@ async function main(): Promise<void> {
   const inputPath = process.argv[3];
 
   if (!brandId || !inputPath) {
-    throw new Error(
-      "usage: vite-node scripts/import-local.ts <brandId> <path-to-layout.json>",
-    );
+    throw new Error("usage: vite-node scripts/import-local.ts <brandId> <path-to-layout.json>");
   }
 
   const brand = BRANDS.find((b) => b.id === brandId);
@@ -47,9 +45,7 @@ async function main(): Promise<void> {
   }
 
   if (!body || typeof body !== "object" || !Array.isArray((body as { nav?: unknown }).nav)) {
-    throw new Error(
-      "input JSON has no top-level `nav` array — save the full /api/layout response",
-    );
+    throw new Error("input JSON has no top-level `nav` array — save the full /api/layout response");
   }
 
   const nav = (body as { nav: NavNode[] }).nav;
@@ -66,6 +62,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((cause: unknown) => {
-  process.stderr.write(`import-local failed: ${cause instanceof Error ? cause.message : String(cause)}\n`);
+  process.stderr.write(
+    `import-local failed: ${cause instanceof Error ? cause.message : String(cause)}\n`,
+  );
   process.exitCode = 1;
 });

@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import type { NavNode } from "../data/types";
@@ -6,27 +7,60 @@ import { jdWilliamsNavFixture } from "../__fixtures__/jdwilliams-nav";
 import { NavRenderer } from "./NavRenderer";
 import { jdWilliamsTheme } from "./themes";
 
-describe("NavRenderer", () => {
-  it("renders groups as expandable disclosures and leaves as links", () => {
+/** The active (visible) panel in the drawer. */
+function activePanel(container: HTMLElement): HTMLElement {
+  const panel = container.querySelector<HTMLElement>(".nav-panel--active");
+  if (!panel) {
+    throw new Error("no active panel");
+  }
+  return panel;
+}
+
+describe("NavRenderer drawer", () => {
+  it("renders the root menu: groups as drill buttons, leaves as links", () => {
     const nodes: NavNode[] = [
       { title: "Womens", urlPath: "/shop/c/womens", type: "G", seoPath: "/womens" },
       { title: "Sale", urlPath: "/shop/c/sale", type: "L", seoPath: "/sale" },
     ];
     const { container } = render(<NavRenderer nodes={nodes} mode="live" />);
 
-    // Group → a <details>/<summary> disclosure carrying the title.
-    const group = container.querySelector("details.nav-group");
-    expect(group).not.toBeNull();
-    expect(within(group as HTMLElement).getByText("Womens")).toBeInTheDocument();
-
-    // Leaf → an anchor link.
-    const saleLink = screen.getByRole("link", { name: "Sale" });
-    expect(saleLink).toHaveAttribute("href", "/shop/c/sale");
+    const root = activePanel(container);
+    // Group → a drill button carrying the title.
+    expect(within(root).getByRole("button", { name: /Womens/ })).toBeInTheDocument();
+    // Leaf → an anchor link with its urlPath.
+    expect(within(root).getByRole("link", { name: "Sale" })).toHaveAttribute(
+      "href",
+      "/shop/c/sale",
+    );
   });
 
-  it("renders leaf links with their urlPath as href (Req 3.3)", () => {
-    render(<NavRenderer nodes={jdWilliamsNavFixture} mode="live" />);
+  it("drills into a category and shows its sections and links, then navigates back", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<NavRenderer nodes={jdWilliamsNavFixture} mode="live" />);
 
+    // Root shows Womens as a drill target.
+    const womens = within(activePanel(container)).getByRole("button", { name: /Womens/ });
+    await user.click(womens);
+
+    // The active panel is now the Womens category: its section heading and a deep link.
+    const panel = activePanel(container);
+    expect(within(panel).getByRole("heading", { name: "Shop by Category" })).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: "Dresses" })).toHaveAttribute(
+      "href",
+      "/shop/c/womens/dresses",
+    );
+
+    // A breadcrumb reflects the trail and Back returns to the root menu.
+    expect(within(panel).getByText("Home")).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: /Back/ }));
+    expect(
+      within(activePanel(container)).getByRole("button", { name: /Womens/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps every leaf link in the DOM across panels (full-tree preview)", () => {
+    render(<NavRenderer nodes={jdWilliamsNavFixture} mode="live" />);
+    // Deep links exist regardless of which panel is active.
     expect(screen.getByRole("link", { name: "Dresses" })).toHaveAttribute(
       "href",
       "/shop/c/womens/dresses",
@@ -35,46 +69,25 @@ describe("NavRenderer", () => {
       "href",
       "/shop/c/womens/lingerie",
     );
-    expect(screen.getByRole("link", { name: "Sale" })).toHaveAttribute("href", "/shop/c/sale");
-  });
-
-  it("renders the full three-level nesting (Req 3.2)", () => {
-    const { container } = render(<NavRenderer nodes={jdWilliamsNavFixture} mode="live" />);
-
-    // Level 1: Womens (group) → Level 2: Shop by Category (group) → Level 3: Dresses (leaf).
-    const topList = container.querySelector("nav.nav-renderer > ul.nav-list[data-depth='1']");
-    expect(topList).not.toBeNull();
-    expect(container.querySelector("ul.nav-list[data-depth='2']")).not.toBeNull();
-    expect(container.querySelector("ul.nav-list[data-depth='3']")).not.toBeNull();
-
-    // The deepest leaf is reachable and correctly linked.
-    const dresses = screen.getByRole("link", { name: "Dresses" });
-    expect(dresses).toHaveAttribute("href", "/shop/c/womens/dresses");
-
-    // Its intermediate group ancestor is present.
-    expect(screen.getAllByText("Shop by Category").length).toBeGreaterThan(0);
   });
 
   it("annotates a malformed node without blanking sibling nodes (Property 7)", () => {
     const nodes = [
       { title: "Womens", urlPath: "/shop/c/womens", type: "G", seoPath: "/womens" },
-      // Malformed: unknown type, no usable link.
       { title: "Broken", type: "X" },
       { title: "Sale", urlPath: "/shop/c/sale", type: "L", seoPath: "/sale" },
     ] as unknown as NavNode[];
 
     const { container } = render(<NavRenderer nodes={nodes} mode="live" />);
+    const root = activePanel(container);
 
     // The malformed node is annotated, not silently dropped.
-    const malformed = container.querySelectorAll("[data-malformed='true']");
-    expect(malformed).toHaveLength(1);
+    expect(root.querySelectorAll("[data-malformed='true']")).toHaveLength(1);
     expect(screen.getByText(/skipped malformed navigation node/i)).toBeInTheDocument();
 
-    // Valid siblings still render around it — the tree is not blanked.
-    expect(
-      within(container.querySelector("details.nav-group") as HTMLElement).getByText("Womens"),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sale" })).toBeInTheDocument();
+    // Valid siblings still render around it.
+    expect(within(root).getByRole("button", { name: /Womens/ })).toBeInTheDocument();
+    expect(within(root).getByRole("link", { name: "Sale" })).toBeInTheDocument();
   });
 
   it("surfaces the mode as a data hook (live vs proposed)", () => {
@@ -92,7 +105,6 @@ describe("NavRenderer", () => {
 });
 
 describe("NavRenderer render totality (Property 7)", () => {
-  // A node the runtime guard accepts.
   const arbLeaf: fc.Arbitrary<unknown> = fc.record({
     title: fc.string({ minLength: 1 }).filter((s) => s.trim() !== ""),
     urlPath: fc.string(),
@@ -105,14 +117,12 @@ describe("NavRenderer render totality (Property 7)", () => {
     type: fc.constant("G"),
     seoPath: fc.string(),
   });
-  // Nodes the guard must reject and annotate rather than draw.
   const arbMalformed: fc.Arbitrary<unknown> = fc.oneof(
     fc.constant(null),
     fc.constant(undefined),
     fc.constant({}),
     fc.record({ title: fc.constant("   "), type: fc.constant("L"), urlPath: fc.string() }),
     fc.record({ title: fc.string({ minLength: 1 }), type: fc.constant("X") }),
-    // Leaf missing a usable urlPath.
     fc.record({ title: fc.constant("Leaf"), type: fc.constant("L") }),
     fc.integer(),
     fc.string(),
@@ -120,19 +130,19 @@ describe("NavRenderer render totality (Property 7)", () => {
 
   const arbNodes = fc.array(fc.oneof(arbLeaf, arbGroup, arbMalformed), { maxLength: 12 });
 
-  it("draws or annotates every top-level node — one item per node, never blank", () => {
+  it("draws or annotates every top-level node — one root row per node, never blank", () => {
     fc.assert(
       fc.property(arbNodes, (nodes) => {
         const { container, unmount } = render(
           <NavRenderer nodes={nodes as unknown as NavNode[]} mode="live" />,
         );
         try {
-          const topList = container.querySelector("nav.nav-renderer > ul.nav-list");
-          const directItems = topList
-            ? Array.from(topList.children).filter((child) => child.tagName === "LI")
+          const rootMenu = container.querySelector(".nav-panel[data-panel='root'] > ul.nav-menu");
+          const items = rootMenu
+            ? Array.from(rootMenu.children).filter((child) => child.tagName === "LI")
             : [];
-          // Every node is accounted for exactly once (drawn or annotated).
-          expect(directItems).toHaveLength(nodes.length);
+          // Every top-level node is accounted for exactly once (drawn or annotated).
+          expect(items).toHaveLength(nodes.length);
         } finally {
           unmount();
         }

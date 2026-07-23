@@ -1,16 +1,17 @@
 /**
  * Global styles for the Navigation Staging Site.
  *
- * The Nav Renderer emits semantic markup (`nav-renderer`, `nav-list[data-depth]`,
- * `nav-group`, `nav-leaf__link`, …) and applies the active brand's theme tokens
- * (`--nav-*`) as inline custom properties on `.nav-renderer`. This stylesheet is
- * the consuming layer: it turns that structure + tokens into a storefront-style
- * megamenu. It reads ONLY the `--nav-*` tokens for brand-specific values, so
- * fidelity is tightened by editing theme tokens, never this file (retail
- * white-label convention: no brand literals in shared styling).
+ * The Nav Renderer emits a drill-down drawer (`nav-renderer--drawer`) of panels
+ * (`nav-panel`), rows (`nav-row`), sections (`nav-section`), and a breadcrumb
+ * header, and applies the active brand's theme tokens (`--nav-*`) as inline
+ * custom properties. This stylesheet is the consuming layer: it reads ONLY the
+ * `--nav-*` tokens for brand-specific values, so fidelity is tightened by editing
+ * theme tokens, never this file (retail white-label convention: no brand literals
+ * in shared styling).
  *
- * Fidelity here is a structural + themed approximation of the production megamenu,
- * not a pixel-for-pixel copy — the deliberate tradeoff flagged in the design.
+ * This reproduces the production drawer *interaction and layout* (a category
+ * opens into its own sections); it is a structural + themed approximation, not a
+ * pixel-for-pixel copy of production CSS — the deliberate tradeoff in the design.
  */
 
 *,
@@ -112,14 +113,18 @@ body {
   text-align: center;
 }
 
-/* ── Nav Renderer: storefront megamenu ─────────────────────────────────── */
+/* ── Nav Renderer: drill-down drawer ───────────────────────────────────── */
 
-.nav-renderer {
+.nav-renderer--drawer {
+  width: 340px;
+  max-width: 100%;
   margin-top: 1rem;
   background: var(--nav-color-surface, #fff);
   border: 1px solid var(--nav-color-border, #e0e0e0);
   border-radius: 6px;
+  overflow: hidden;
   font-family: var(--nav-font-body, system-ui, Arial, sans-serif);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 /* Brand header row (logo). */
@@ -129,158 +134,152 @@ body {
   padding: var(--nav-space-md, 1rem);
   background: var(--nav-color-surface, #fff);
   border-bottom: 1px solid var(--nav-color-border, #e0e0e0);
-  border-radius: 6px 6px 0 0;
 }
 
 .nav-renderer__logo {
-  height: 34px;
+  height: 30px;
   width: auto;
   display: block;
 }
 
-.nav-list {
-  list-style: none;
-}
-
-/* Top-level bar. */
-.nav-renderer > .nav-list[data-depth="1"] {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  margin: 0;
-  padding: 0;
-  background: var(--nav-color-primary, #1a1a1a);
-  border-radius: 0 0 6px 6px;
-}
-
-.nav-renderer > .nav-list[data-depth="1"] > .nav-item {
+/* Panels: only the active one is shown; the drawer swaps between them. */
+.nav-renderer__panels {
   position: relative;
 }
 
-/* Top-level labels: group summaries and leaf links share the bar-item look. */
-.nav-renderer > .nav-list[data-depth="1"] > .nav-item > .nav-group > .nav-group__title,
-.nav-renderer > .nav-list[data-depth="1"] > .nav-item > .nav-leaf__link {
-  display: block;
-  padding: 0.7rem 1rem;
-  color: var(--nav-color-on-primary, #fff);
-  font-family: var(--nav-font-heading, Georgia, serif);
-  font-size: 0.95rem;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-}
-
-.nav-renderer > .nav-list[data-depth="1"] > .nav-item > .nav-group > .nav-group__title:hover,
-.nav-renderer > .nav-list[data-depth="1"] > .nav-item > .nav-leaf__link:hover,
-.nav-renderer
-  > .nav-list[data-depth="1"]
-  > .nav-item
-  > .nav-group[open]
-  > .nav-group__title {
-  background: var(--nav-color-accent, #b5121b);
-  color: #fff;
-}
-
-/* Chevron affordance on top-level groups. */
-.nav-renderer
-  > .nav-list[data-depth="1"]
-  > .nav-item--group
-  > .nav-group
-  > .nav-group__title::after {
-  content: "▾";
-  margin-left: 0.4rem;
-  font-size: 0.7em;
-  vertical-align: middle;
-}
-
-/* Hide the native <details> disclosure marker everywhere. */
-.nav-group__title {
-  list-style: none;
-}
-.nav-group__title::-webkit-details-marker {
+.nav-panel {
   display: none;
 }
-.nav-group__title::marker {
-  content: "";
+
+.nav-panel--active {
+  display: block;
 }
 
-/* ── Megamenu panel (depth 2 dropped under an open top-level group) ─────── */
+/* Drilled-panel header: back button + breadcrumb. */
+.nav-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem var(--nav-space-md, 1rem);
+  border-bottom: 1px solid var(--nav-color-border, #e0e0e0);
+  background: #fafafa;
+}
 
-.nav-renderer
-  > .nav-list[data-depth="1"]
-  > .nav-item--group
-  > .nav-group[open]
-  > .nav-list[data-depth="2"] {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 20;
+.nav-back {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--nav-color-accent, #b5121b);
+  cursor: pointer;
+}
+
+.nav-breadcrumb {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem 2.5rem;
-  min-width: 260px;
-  max-width: 760px;
-  margin: 0;
-  padding: 1.5rem;
-  background: var(--nav-color-surface, #fff);
-  border: 1px solid var(--nav-color-border, #e0e0e0);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #757575;
 }
 
-/* Each depth-2 item is a column in the panel. */
-.nav-list[data-depth="2"] {
-  margin: 0;
+.nav-breadcrumb__crumb {
+  border: none;
+  background: none;
   padding: 0;
-}
-
-.nav-list[data-depth="2"] > .nav-item {
-  min-width: 160px;
-}
-
-/* Depth-2 group heading (a column title, not clickable-looking). */
-.nav-list[data-depth="2"] > .nav-item--group > .nav-group > .nav-group__title {
-  display: block;
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.3rem;
-  color: var(--nav-color-on-surface, #1a1a1a);
-  font-family: var(--nav-font-heading, Georgia, serif);
-  font-size: 0.95rem;
-  font-weight: 700;
-  border-bottom: 2px solid var(--nav-color-accent, #b5121b);
-  cursor: default;
-}
-
-.nav-list[data-depth="2"] > .nav-item--group > .nav-group > .nav-group__title::after {
-  content: none;
-}
-
-/* Depth-3 list: stacked links under a column heading. */
-.nav-list[data-depth="3"] {
-  margin: 0;
-  padding: 0;
-}
-
-/* Links inside the panel (depth-2 leaves and depth-3 leaves). */
-.nav-list[data-depth="2"] .nav-leaf__link,
-.nav-list[data-depth="3"] .nav-leaf__link {
-  display: block;
-  padding: 0.22rem 0;
-  color: var(--nav-color-on-surface, #1a1a1a);
-  font-size: 0.9rem;
-  text-decoration: none;
-}
-
-.nav-list[data-depth="2"] .nav-leaf__link:hover,
-.nav-list[data-depth="3"] .nav-leaf__link:hover {
-  color: var(--nav-color-accent, #b5121b);
+  font: inherit;
+  color: #757575;
+  cursor: pointer;
   text-decoration: underline;
 }
 
-/* Malformed nodes: annotated, never blanking the tree (Property 7). */
+.nav-breadcrumb__current {
+  font-weight: 700;
+  color: var(--nav-color-on-surface, #1a1a1a);
+}
+
+.nav-breadcrumb__sep {
+  color: #bdbdbd;
+}
+
+/* Vertical menu of rows. */
+.nav-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-menu__item {
+  border-bottom: 1px solid #efefef;
+}
+
+/* A row is either a drill button or a leaf link — same footprint. */
+.nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.8rem var(--nav-space-md, 1rem);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--nav-color-on-surface, #1a1a1a);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-row:hover,
+.nav-row:focus-visible {
+  background: #f5f5f5;
+  color: var(--nav-color-accent, #b5121b);
+}
+
+.nav-row--leaf {
+  justify-content: flex-start;
+}
+
+.nav-row__chevron {
+  color: #9e9e9e;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* Drilled category: grouped sections. */
+.nav-sections {
+  padding: 0.25rem 0 0.5rem;
+}
+
+.nav-section + .nav-section {
+  border-top: 8px solid #f4f4f5;
+}
+
+.nav-section__title {
+  margin: 0;
+  padding: 0.9rem var(--nav-space-md, 1rem) 0.4rem;
+  font-family: var(--nav-font-heading, Georgia, serif);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9e9e9e;
+}
+
+.nav-section .nav-row {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+  font-weight: 600;
+}
+
+/* Malformed nodes: annotated, never blanking the drawer (Property 7). */
 .nav-item--malformed {
-  padding: 0.3rem 1rem;
+  display: block;
+  padding: 0.6rem var(--nav-space-md, 1rem);
   color: #a12622;
   font-size: 0.8rem;
   font-style: italic;
