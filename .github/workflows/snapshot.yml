@@ -62,6 +62,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No navigation changes to commit."
           else
-            git commit -m "chore(snapshot): update navigation snapshots [skip ci]"
+            git commit -m "chore(snapshot): update navigation snapshots"
             git push
           fi

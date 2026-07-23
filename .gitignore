@@ -25,3 +25,6 @@ coverage
 .env
 .env.*
 !.env.example
+
+# Local manual snapshot capture (never commit the raw layout response)
+layout.json
