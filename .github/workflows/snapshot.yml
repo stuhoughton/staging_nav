@@ -1,67 +1,67 @@
-# Snapshot_Job — scheduled capture of each enabled brand's live navigation.
-#
-# Fetches every enabled brand's layout API, extracts only the `nav` array, and
-# commits the per-brand snapshot back to the repository. A commit that changes a
-# snapshot triggers a Netlify rebuild so the site serves fresh data (Req 1.4, 1.5,
-# 6.2). The heavy lifting lives in the unit-tested core (scripts/snapshot.ts) and
-# the thin runner (scripts/run-snapshot.ts); this workflow only schedules it,
-# runs it, and commits the result.
-#
-# Security: least-privilege token — `contents: write` only, nothing else. The
-# fetch targets come from static config (no user input, no SSRF surface) and only
-# the public `nav` data files under `data/` are ever committed. Third-party
-# actions are pinned to a full commit SHA to close the supply-chain door.
-name: Snapshot navigation
+# # Snapshot_Job — scheduled capture of each enabled brand's live navigation.
+# #
+# # Fetches every enabled brand's layout API, extracts only the `nav` array, and
+# # commits the per-brand snapshot back to the repository. A commit that changes a
+# # snapshot triggers a Netlify rebuild so the site serves fresh data (Req 1.4, 1.5,
+# # 6.2). The heavy lifting lives in the unit-tested core (scripts/snapshot.ts) and
+# # the thin runner (scripts/run-snapshot.ts); this workflow only schedules it,
+# # runs it, and commits the result.
+# #
+# # Security: least-privilege token — `contents: write` only, nothing else. The
+# # fetch targets come from static config (no user input, no SSRF surface) and only
+# # the public `nav` data files under `data/` are ever committed. Third-party
+# # actions are pinned to a full commit SHA to close the supply-chain door.
+# name: Snapshot navigation
 
-on:
-  schedule:
-    # Daily at 06:00 UTC (sensible default cadence — see design "Snapshot_Job").
-    - cron: "0 6 * * *"
-  workflow_dispatch: {}
+# on:
+#   schedule:
+#     # Daily at 06:00 UTC (sensible default cadence — see design "Snapshot_Job").
+#     - cron: "0 6 * * *"
+#   workflow_dispatch: {}
 
-# Least privilege: the built-in GITHUB_TOKEN may only write repository contents.
-permissions:
-  contents: write
+# # Least privilege: the built-in GITHUB_TOKEN may only write repository contents.
+# permissions:
+#   contents: write
 
-# Never let two snapshot runs race on the same branch's data files.
-concurrency:
-  group: snapshot-${{ github.ref }}
-  cancel-in-progress: false
+# # Never let two snapshot runs race on the same branch's data files.
+# concurrency:
+#   group: snapshot-${{ github.ref }}
+#   cancel-in-progress: false
 
-jobs:
-  snapshot:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+# jobs:
+#   snapshot:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Check out repository
+#         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
-        with:
-          node-version: "20"
-          cache: "npm"
+#       - name: Set up Node.js
+#         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+#         with:
+#           node-version: "20"
+#           cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+#       - name: Install dependencies
+#         run: npm ci
 
-      # Runs the snapshot for every enabled brand independently. One brand failing
-      # is tolerated (its previous snapshot is retained by the fail-safe core) and
-      # keeps the job green; the runner exits non-zero only if every brand fails.
-      # Per-brand outcomes are written to the step summary by the runner itself.
-      - name: Capture navigation snapshots
-        run: npm run snapshot
+#       # Runs the snapshot for every enabled brand independently. One brand failing
+#       # is tolerated (its previous snapshot is retained by the fail-safe core) and
+#       # keeps the job green; the runner exits non-zero only if every brand fails.
+#       # Per-brand outcomes are written to the step summary by the runner itself.
+#       - name: Capture navigation snapshots
+#         run: npm run snapshot
 
-      # Commit ONLY the navigation data files, using the built-in token. If the
-      # snapshot did not change anything, there is nothing to commit and the step
-      # is a no-op.
-      - name: Commit updated snapshots
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data
-          if git diff --cached --quiet; then
-            echo "No navigation changes to commit."
-          else
-            git commit -m "chore(snapshot): update navigation snapshots"
-            git push
-          fi
+#       # Commit ONLY the navigation data files, using the built-in token. If the
+#       # snapshot did not change anything, there is nothing to commit and the step
+#       # is a no-op.
+#       - name: Commit updated snapshots
+#         run: |
+#           git config user.name "github-actions[bot]"
+#           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+#           git add data
+#           if git diff --cached --quiet; then
+#             echo "No navigation changes to commit."
+#           else
+#             git commit -m "chore(snapshot): update navigation snapshots"
+#             git push
+#           fi
